@@ -23,7 +23,7 @@ for (i = 0; i < imageNames.length; i++) {
   const name = imageNames[i];
   var img = images[name] = new Image();
   img.onload = function () { this.readyToUse = true; }
-  img.src = "./" + name + ".png";
+  img.src = "./images/" + name + ".png";
 }
 
 /*********************** Item class *********************/
