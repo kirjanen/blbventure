@@ -13,8 +13,10 @@ ctx.font = "32px Courier";
 
 var imageNames = [
         "naama", "nurmi", "kivi", "arkku1", "arkku2", "arkku3", "vesi", "raha", 
-        "puumiekka", "ametystmiekka", "bronssimiekka", "kivimiekka", 
-        "sateenkaarimiekka", "smaragdimiekka" ];
+        "puumiekka", "terasmiekka", "ametystmiekka", "bronssimiekka", "kivimiekka", 
+        "sateenkaarimiekka", "jaamiekka", "smaragdimiekka", "puukirves", "puukilpi", "kivikirves", "pronssikirves", "teraskirves", "teraskilpi", "jaakirves",
+        "kivikilpi", "smaragdikirves", "ametystkirves", "sateenkaarikirves", "hopeakilpi", "rubiinikilpi", "luontokilpi", "tulivuorikilpi", 
+        "obsidiaanikilpi", ];
 
 var images = {};
 
@@ -48,7 +50,26 @@ const itemClasses = {
   ametystmiekka: new ItemClass("ametystmiekka", images.ametystmiekka),
   bronssimiekka: new ItemClass("pronssimiekka", images.bronssimiekka),
   sateenkaarimiekka: new ItemClass("sateenkaarimiekka", images.sateenkaarimiekka),
+  puukirves: new ItemClass(" puukirves", images.puukirves),
+  kivikirves: new ItemClass(" kivikirves", images.kivikirves),
+  teraskirves: new ItemClass(" teraskirves", images.teraskirves),
+  pronssikirves: new ItemClass("  pronssikirves", images.pronssikirves),
+  smaragdikirves: new ItemClass(" smaragdikirves", images.smaragdikirves),
+  jaamiekka: new ItemClass(" jaamiekka", images.jaamiekka),
+  jaakirves: new ItemClass(" jaakirves", images.jaakirves),
+  ametystkirves: new ItemClass(" ametystkirves", images.ametystkirves),
+  sateenkaarikirves: new ItemClass(" sateenkaarikirves", images.sateenkaarikirves),
+  puukilpi: new ItemClass(" puukilpi", images.puukilpi),
+  kivikilpi: new ItemClass(" kivikilpi", images.kivikilpi),
+  teraskilpi: new ItemClass(" teraskilpi", images.teraskilpi),
+  terasmiekka: new ItemClass(" terasmiekka", images.terasmiekka),
+  hopeakilpi: new ItemClass(" hopeakilpi", images.hopeakilpi),
+  rubiinikilpi: new ItemClass(" rubiinikilpi", images.rubiinikilpi),
+  luontokilpi: new ItemClass(" luontokilpi", images.luontokilpi),
+  tulivuorikilpi: new ItemClass(" tulivuorikilpi", images.tulivuorikilpi),
+  obsidiaanikilpi: new ItemClass(" obsidiaanikilpi", images.obsidiaanikilpi),
 }
+
 
 class Item {
   constructor(type) {
@@ -162,23 +183,45 @@ const structureClasses = {
   kivi:   new StructureClass(images.kivi, 0, 10, []),
 
   arkku1: new StructureClass(images.arkku1, 4, 100, [
-                 {type: itemClasses.raha,             prop: 10000}, 
-                 {type: itemClasses.puumiekka,        prop: 500}, 
-                 {type: itemClasses.kivimiekka,       prop: 200}]),
-
+                 {type: itemClasses.raha,             prop: 11000}, 
+                 {type: itemClasses.puumiekka,        prop: 470}, 
+                 {type: itemClasses.kivimiekka,       prop: 200},
+                 {type: itemClasses.puukirves,        prop: 470},
+                 {type: itemClasses.kivikirves,       prop: 180},
+                 {type: itemClasses.puukilpi,         prop: 430},
+                 {type: itemClasses.kivikilpi,        prop: 150}]),
   arkku2: new StructureClass(images.arkku2, 8, 300, [
-                 {type: itemClasses.raha,             prop: 50000}, 
+                 {type: itemClasses.raha,             prop: 53000}, 
                  {type: itemClasses.kivimiekka,       prop: 400},
+                 {type: itemClasses.smaragdimiekka,   prop: 85},
+                 {type: itemClasses.bronssimiekka,    prop: 150},
+                 {type: itemClasses.jaamiekka,        prop: 100},
+                 {type: itemClasses.pronssikirves,    prop: 140},
+                 {type: itemClasses.terasmiekka,      prop: 120},
+                 {type: itemClasses.kivikirves,       prop: 390},
+                 {type: itemClasses.teraskirves,      prop: 120},
+                 {type: itemClasses.smaragdikirves,   prop: 82},
+                 {type: itemClasses.kivikilpi,        prop: 355},
+                 {type: itemClasses.teraskilpi,       prop: 115},
+                 {type: itemClasses.hopeakilpi,       prop: 95},
+                 {type: itemClasses.rubiinikilpi,     prop: 80}]),
+  arkku3: new StructureClass(images.arkku3, 16, 6, [
+                 {type: itemClasses.raha,             prop: 300000}, 
                  {type: itemClasses.smaragdimiekka,   prop: 100},
-                 {type: itemClasses.bronssimiekka,    prop: 150}]),
-
-
-  arkku3: new StructureClass(images.arkku3, 16, 1000, [
-                 {type: itemClasses.raha,             prop: 250000}, 
-                 {type: itemClasses.smaragdimiekka,   prop: 100},
-                 {type: itemClasses.sateenkaarimiekka,prop: 50},
-                 {type: itemClasses.smaragdimiekka,   prop: 100},
-                 {type: itemClasses.bronssimiekka,    prop: 200}]),
+                 {type: itemClasses.ametystmiekka,    prop: 80},
+                 {type: itemClasses.ametystkirves,    prop: 75},
+                 {type: itemClasses.sateenkaarimiekka,prop: 40},
+                 {type: itemClasses.terasmiekka,      prop: 200},
+                 {type: itemClasses.hopeakilpi,       prop: 190},
+                 {type: itemClasses.rubiinikilpi,     prop: 140},
+                 {type: itemClasses.sateenkaarikirves,prop: 45},
+                 {type: itemClasses.luontokilpi,      prop: 100},
+                 {type: itemClasses.tulivuorikilpi,   prop: 72},
+                 {type: itemClasses.obsidiaanikilpi,  prop: 35},
+                 {type: itemClasses.smaragdikirves,   prop: 100},
+                 {type: itemClasses.jaamiekka,        prop: 145},
+                 {type: itemClasses.jaakirves,        prop: 145},
+                 {type: itemClasses.teraskirves,      prop: 200}]),
 };
 
 
@@ -195,7 +238,10 @@ class Structure {
       // Add loot to the inventory of this structure.
       for (var i = 0; i < type.lootProp.length; i++) {
         if (type.lootProp[i].prop > Math.random() * 1000) {  
-          const item = type.lootProp[i].type.create();          
+          if (!type.lootProp[i].type) 
+            console.log("Problem in index: " + type.img.src + " " + i);
+
+          const item = type.lootProp[i].type.create();   
           if (type.lootProp[i].prop > 1000)
             item.stackSize = 1 + Math.floor(type.lootProp[i].prop * Math.random() / 1000);          
           this.inventory.add(item);
