@@ -131,9 +131,29 @@ class ObjectBase {
   
   distanceTo(obj) {
     const dx = this.pos.x - obj.pos.x;
-    const dy = this.pos.y - obj.pos.y;  
+    const dy = this.pos.y - obj.pos.y;     
     return Math.sqrt(dx*dx + dy*dy);
   }  
+
+  isCollision(obj) {
+    const dx = this.pos.x - obj.pos.x;
+    const dy = this.pos.y - obj.pos.y;
+    const r2 = 60*60;     
+    return (r2 >= dx*dx + dy*dy);    
+  }  
+
+
+  isNear(obj) {    
+    const dx = this.pos.x - obj.pos.x;
+    const dy = this.pos.y - obj.pos.y;
+    return (dx > -4000) && (dx < 4000) && (dy > -4000) && (dy < 4000);      
+  }  
+
+  isClose(obj) {    
+    const dx = this.pos.x - obj.pos.x;
+    const dy = this.pos.y - obj.pos.y;
+    return (dx > -400) && (dx < 400) && (dy > -400) && (dy < 400);      
+  } 
   
   loot(obj) {
     this.inventory.loot(obj.inventory);  
@@ -177,6 +197,10 @@ class StructureClass {
     this.rarity = rarity;
     this.lootProp = lootProp;
   }
+
+  create(pos) {
+    return new Structure(pos, this); 
+  }
 }
 
 class Structure extends ObjectBase {
@@ -197,6 +221,55 @@ class Structure extends ObjectBase {
         this.addToInventory(item);
       } 
     }
+  }
+}
+
+
+/*********************** npcClass *********************/
+
+class NpcClass extends StructureClass {
+  constructor(img,inventorySize,rarity,lootProp) {
+    super(img,inventorySize,rarity,lootProp);
+  }
+  
+  create(pos) {
+    return new Npc(pos, this); 
+  }
+}
+
+class Npc extends Structure {
+  constructor(pos,type) {
+    super(pos,type);
+    this.vx = 0.0;
+    this.vy = 0.0;
+  }
+
+  step(timeDiff, player) {
+    this.vx = this.vx + Math.random() - 0.5;
+    this.vy = this.vy + Math.random() - 0.5;
+
+    // Follow the player if close.
+    if (this.isClose(player)) {	    
+      const forceDirection = this.isCollision(player) ? -2 : 1;      
+      const dx = player.pos.x - this.pos.x;
+      const dy = player.pos.y - this.pos.y;
+      const r  = 1.0 + Math.abs(dx) + Math.abs(dy);
+      this.vx += forceDirection * dx / r;
+      this.vy += forceDirection * dy / r; 
+    }
+
+    // reduce speed
+    this.vx = 0.999 * this.vx;
+    this.vy = 0.999 * this.vy;
+
+    // Limit speed
+    if (this.vx * this.vx + this.vy * this.vy > 10.0) {
+	     this.vx = 0.8 * this.vx;
+       this.vy = 0.8 * this.vy;
+    }
+
+    this.pos.x += this.vx;
+    this.pos.y += this.vy;
   }
 }
 
@@ -230,31 +303,39 @@ class Game {
     
     // Create other members
     this.itemClasses = this.createItemClasses();
-    this.structureClasses = this.createStructureClasses();
+    this.objectClasses = this.createObjectClasses();
     this.lastStepTime = 0;    
     this.landRandom1 = (Math.random() * 100) + 250;
     this.landRandom2 = (Math.random() * 100) + 250;
     this.landRandom3 = (Math.random() * 200) + 500;
     this.landRandom4 = (Math.random() * 200) + 500;    
-    this.player = new Player(this.images.naama); 
-    this.stuctures = [];
+    this.player = new Player(this.images.naama);     
+    this.objects = [];
+    this.objectsInArea = [];
     this.mousePos = {x:0, y:0};
     this.transform = {x:0, y:0};
     this.tmpPoint = {x:0, y:0};
     
-        
     this.player.addToInventory( this.itemClasses.raha.create() );
     this.player.addToInventory( this.itemClasses.puumiekka.create() );        
     
+    this.lastAreaUpdateTime = -10000;
     
-    // Fill stuctures list
-    for (var name in this.structureClasses) {
-      const type = this.structureClasses[name];
-      const count = 5000 / type.rarity;
+    // Create random objects of the world
+    for (var name in this.objectClasses) {
+      const type = this.objectClasses[name];
+      const count = 50000 / type.rarity;
       for (var i = 0; i < count; i++) {
-        this.stuctures.push(new Structure(this.getRandomPos(), type));     
+	      
+        // Get non-lake random location.
+        var pos;
+        do {
+	         pos = this.getRandomPos();
+        } while (this.isLakeInPos(pos));	      
+
+        this.objects.push(type.create(pos));
       }
-    }    
+    }  
   }
   
   onMouseMove(evt) {    
@@ -276,44 +357,64 @@ class Game {
   }
   
   getRandomPos() {
-    const areaSize = 10000;
+    const areaSize = 100000;
     return {
       x: areaSize * Math.random() - areaSize / 2,
       y: areaSize * Math.random() - areaSize / 2
     };    
   }  
   
+  // Take periodically nearby objects to this.objectsInArea.
+  // This will reduce CPU load.
+  getItemsInArea(timestamp) {
+    if (timestamp > this.lastAreaUpdateTime + 5000) {      
+      this.lastAreaUpdateTime = timestamp;
+      this.objectsInArea.length = 0;
+      const player = this.player;
+
+      for (var i = 0; i < this.objects.length; i++) {
+        const item = this.objects[i];
+        if (player.isNear(item)) {	       
+          this.objectsInArea.push(item);
+        }  
+      }
+    } 
+  }
+
+
   step(timestamp) {
+    const player = this.player;	   
     const timeDiff = timestamp - this.lastStepTime;
     this.lastStepTime = timestamp;
+    this.getItemsInArea(timestamp);
 
-    this.player.setTarget(this.player.pos.x + this.mousePos.x - this.xsize/2, this.player.pos.y + this.mousePos.y - this.ysize/2);
-    this.player.step(timeDiff);
-    
+    player.setTarget(player.pos.x + this.mousePos.x - this.xsize/2, player.pos.y + this.mousePos.y - this.ysize/2);
+    player.step(timeDiff);
 
     // Collision detection
-    for (var i = 0; i < this.stuctures.length; i++) {
-      var item = this.stuctures[i];
-      if (item.inventory && item.inventory.getSize()) {
-        const r = this.player.distanceTo(item);  
-        if (r < 60) {
-          item.hide(true);
-          this.player.loot(item);          
+    for (var i = 0; i < this.objectsInArea.length; i++) {
+      var object = this.objectsInArea[i];
+      if (object.step)
+        object.step(timeDiff, player);
+      if (object.inventory && object.inventory.getSize()) {	              
+        if (player.isCollision(object)) {
+          object.hide(true);
+          player.loot(object);          
         }
       }
     }
     
     const transform = this.transform; 
-    transform.x = this.xsize / 2 - this.player.pos.x, 
-    transform.y = this.ysize / 2 - this.player.pos.y
+    transform.x = this.xsize / 2 - player.pos.x, 
+    transform.y = this.ysize / 2 - player.pos.y
 
     // Draw scene
     for (var x = -1*(this.xsize / 2 / 80); x <= 1 + (this.xsize / 2 / 80); x++) {
       for (var y = -1*(this.ysize / 2 / 80); y <= 1 + (this.ysize / 2 / 80); y++) {
         
         const point = this.tmpPoint;
-        point.x = Math.floor(this.player.pos.x / 80) * 80 + x * 80;        
-        point.y = Math.floor(this.player.pos.y / 80) * 80 + y * 80;         
+        point.x = Math.floor(player.pos.x / 80) * 80 + x * 80;        
+        point.y = Math.floor(player.pos.y / 80) * 80 + y * 80;         
         const image = this.isLakeInPos(point) ? this.images.vesi : this.images.nurmi;
         if(image.readyToUse)
           this.ctx.drawImage(image, point.x + transform.x, point.y + transform.y);
@@ -321,16 +422,17 @@ class Game {
     }
 
     // Draw objects
-    this.player.draw(this.ctx, transform);
-    for (i = 0; i < this.stuctures.length; i++) 
-      this.stuctures[i].draw(this.ctx, transform);
-    
+    player.draw(this.ctx, transform);
+    for (var i = 0; i < this.objectsInArea.length; i++) {      
+      this.objectsInArea[i].draw(this.ctx, transform);
+    }
+
     // Draw some info text
-    // this.ctx.fillText("X=" + Math.round(this.player.pos.x) + " Y=" + Math.round(this.player.pos.y), 40, 40);
-    // this.ctx.fillText(Math.round(10000.0 / timeDiff) / 10 + "FPS", 40, 70);
+    //this.ctx.fillText("X=" + Math.round(this.player.pos.x) + " Y=" + Math.round(this.player.pos.y), 40, 40);
+    this.ctx.fillText( Math.floor(1000.0 / timeDiff) + "FPS   " + this.objectsInArea.length + "/" + this.objects.length,  40, 70);
 
     // Draw inventory
-    this.player.inventory.draw(this.ctx, this.xsize - 20 - this.player.inventory.xs, 20 );
+    player.inventory.draw(this.ctx, this.xsize - 20 - player.inventory.xs, 20 );
     
     window.requestAnimationFrame(this.step); 
   }  
@@ -356,7 +458,11 @@ class Game {
             "sateenkaarimiekka", "jaamiekka", "smaragdimiekka", "puukirves", "puukilpi", 
             "kivikirves", "pronssikirves", "teraskirves", "teraskilpi", "jaakirves",
             "kivikilpi", "smaragdikirves", "ametystkirves", "sateenkaarikirves", 
-            "hopeakilpi", "rubiinikilpi", "luontokilpi", "tulivuorikilpi", "obsidiaanikilpi" ];
+            "hopeakilpi", "rubiinikilpi", "luontokilpi", "tulivuorikilpi", "obsidiaanikilpi",
+            "sphere_monster01", "sphere_monster02", "sphere_monster03", "sphere_monster04",
+            "sphere_monster05", "sphere_monster06", "sphere_monster07", "sphere_monster08",
+            "sphere_monster09", "sphere_monster10", "sphere_monster11", "sphere_monster12",
+    ];
 
     for (var i = 0; i < imageNames.length; i++) {
       const name = imageNames[i];
@@ -404,7 +510,7 @@ class Game {
     return {type: type, prop: propability}
   }
   
-  createStructureClasses() {
+  createObjectClasses() {
     return {
       kivi:   new StructureClass(this.images.kivi, 0, 10, []),
 
@@ -453,9 +559,23 @@ class Game {
                        this.createLoot("jaakirves",           145),
                        this.createLoot("teraskirves",         200),
                    ]),
+
+      easyFireBall:    new NpcClass(this.images.sphere_monster01, 0, 100, []),
+      normalFireBall:  new NpcClass(this.images.sphere_monster02, 0, 100, []),
+      hardFireBall:    new NpcClass(this.images.sphere_monster03, 0, 100, []),
+      easyEarthBall:   new NpcClass(this.images.sphere_monster04, 0, 100, []),
+      normalEarthBall: new NpcClass(this.images.sphere_monster05, 0, 100, []),
+      hardEarthBall:   new NpcClass(this.images.sphere_monster06, 0, 100, []),
+      easyIceBall:     new NpcClass(this.images.sphere_monster07, 0, 100, []),
+      normalIceBall:   new NpcClass(this.images.sphere_monster08, 0, 100, []),
+      hardIceBall:     new NpcClass(this.images.sphere_monster09, 0, 100, []),
+      easyWaterBall:   new NpcClass(this.images.sphere_monster10, 0, 100, []),
+      normalWaterBall: new NpcClass(this.images.sphere_monster11, 0, 100, []),
+      hardWaterBall:   new NpcClass(this.images.sphere_monster12, 0, 100, []),
     };
   }
 }
+
 
 const theGame = new Game();
 theGame.start();
