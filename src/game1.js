@@ -283,7 +283,7 @@ class Game {
     this.paused = true;
     this.newGame = true;
     
-    // Bind function to this object
+    // Bind function to this object    
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
@@ -292,12 +292,15 @@ class Game {
     this.onTouchEnd = this.onTouchEnd.bind(this);
     this.onTouchMove = this.onTouchMove.bind(this);
 
+    this.toggleInventory = this.toggleInventory.bind(this);
     this.step = this.step.bind(this);
     this.run = this.run.bind(this);
+
 
     this.canvas.addEventListener('mousemove', this.onMouseMove, false);
     this.canvas.addEventListener("mousedown", this.onMouseDown, false);
     this.canvas.addEventListener("mouseup", this.onMouseUp, false);
+    
     this.canvas.addEventListener('touchstart', this.onTouchStart, false);
     this.canvas.addEventListener("touchend", this.onTouchEnd, false);
     this.canvas.addEventListener("touchmove", this.onTouchMove, false);    
@@ -328,6 +331,7 @@ class Game {
     this.player.addToInventory(this.itemClasses.puumiekka.create());
 
     this.lastAreaUpdateTime = -10000;
+    this.showInventory = false;
 
     // Create random objects of the world
     for (var name in this.objectClasses) {
@@ -362,19 +366,36 @@ class Game {
   }
 
 
+  isButtonPress(x,y) {
+    if (this.buttons) {
+      for (var i = 0; i < this.buttons.length; i++) {
+        const button = this.buttons[i];
+        if ((x >= button.xp) && (x <= button.xp + button.xs) && (y >= button.yp) && (y <= button.yp + button.ys)) {
+          button.action();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+
   // ************************ mouse handlers **************************
   
   onMouseMove(evt) {
-    const rect = this.canvas.getBoundingClientRect();
-    this.mousePos.x = evt.clientX - rect.left;
-    this.mousePos.y = evt.clientY - rect.top;
+    this.mousePos.x = evt.clientX;
+    this.mousePos.y = evt.clientY;
   }
 
-  onMouseDown(evt) {
-    this.player.move = true;
+  onMouseDown(evt) {    
+    this.mousePos.x = evt.clientX;
+    this.mousePos.y = evt.clientY;        
+    if (this.isButtonPress(this.mousePos.x, this.mousePos.y) != true) {
+      this.player.move = true;      
+    }    
   }
 
-  onMouseUp(evt) {
+  onMouseUp(evt) {        
     this.player.move = false;        
     if (this.paused === true) {
       document.getElementById("theGame").requestFullscreen();            
@@ -394,12 +415,18 @@ class Game {
     
   onTouchStart(evt) {
     this.setTargetPosByTouch(evt.touches);
-    this.player.move = true;
+    if (this.isButtonPress(this.mousePos.x, this.mousePos.y) != true) {
+      this.player.move = true;      
+    }    
   }
 
   onTouchEnd(evt) {
     this.setTargetPosByTouch(evt.touches);
     this.player.move = false;
+    
+    if (this.paused === true) {
+      document.getElementById("theGame").requestFullscreen();            
+    }        
   }
 
   onTouchMove(evt) {
@@ -518,7 +545,47 @@ class Game {
     this.ctx.fillText(Math.floor(1000.0 / timeDiff) + "FPS   " + this.objectsInArea.length + "/" + this.objects.length, 40, 70);
 
     // Draw inventory
-    player.inventory.draw(this.ctx, this.xsize - 20 - player.inventory.xs, 20);
+    if (this.showInventory === true)
+      player.inventory.draw(this.ctx, this.xsize - 20 - player.inventory.xs, 20);
+    this.drawCommandBar();
+  }
+  
+  
+  toggleInventory() {
+    if (this.showInventory === true)
+      this.showInventory = false;
+    else
+      this.showInventory = true;
+  }
+  
+  drawCommandBar() {
+    const count = 6;
+    const margin = 4;
+    const iconSize = 64;
+    const h = 2 * margin + iconSize;
+    const w = (iconSize + margin) * count + margin;
+    const x = (this.xsize / 2) - (w / 2);
+    const y = this.ysize - h;
+
+    this.buttons = [];
+
+    this.ctx.fillStyle = "#333";                
+    this.ctx.fillRect(x, y, w, h);        
+
+    this.ctx.fillStyle = "#000";
+    for (var i = 0; i < count; i++) {
+      const xp = x + i * (iconSize + margin) + margin;      
+      const yp = y + margin;      
+      this.ctx.fillRect(xp, yp, iconSize, iconSize);
+      
+      this.buttons.push( {
+        xp: xp,
+        yp: yp,
+        xs: iconSize,
+        ys: iconSize,
+        action: this.toggleInventory
+      });      
+    }               
   }
 
   isLakeInPos(pos) {
